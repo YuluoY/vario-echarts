@@ -1,0 +1,195 @@
+/**
+ * Apple Design System - Design Tokens
+ * 基于 Apple Human Interface Guidelines
+ */
+
+:root {
+  // ============ Apple 颜色系统 ============
+  
+  // 主色 - Apple Blue
+  --primary-color: #0071E3;
+  --primary-hover: #0077ED;
+  --primary-active: #0068D1;
+  --primary-light: rgba(0, 113, 227, 0.1);
+  
+  // 功能色 - Apple 语义色
+  --success-color: #34C759;
+  --warning-color: #FF9500;
+  --danger-color: #FF3B30;
+  --info-color: #5AC8FA;
+  
+  // 背景色 - Light Theme (Apple 风格)
+  --bg-base: #F5F5F7;
+  --bg-card: #FFFFFF;
+  --bg-hover: rgba(0, 0, 0, 0.04);
+  --bg-active: rgba(0, 113, 227, 0.08);
+  --bg-subtle: #F5F5F7;
+  --bg-elevated: #FFFFFF;
+  
+  // 文字色 - Apple 风格
+  --text-primary: #1D1D1F;
+  --text-secondary: #86868B;
+  --text-tertiary: #A1A1A6;
+  --text-disabled: #D1D1D6;
+  --text-inverse: #FFFFFF;
+  
+  // 边框色
+  --border-color: rgba(0, 0, 0, 0.08);
+  --border-hover: rgba(0, 0, 0, 0.15);
+  --border-focus: #0071E3;
+  --border-divider: rgba(0, 0, 0, 0.06);
+  
+  // 阴影 - Apple 风格弥散阴影
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.12);
+  
+  // 玻璃效果
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.3);
+  --glass-blur: 20px;
+  
+  // ============ 间距系统 - 8px 基准 ============
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-5: 20px;
+  --spacing-6: 24px;
+  --spacing-8: 32px;
+  --spacing-10: 40px;
+  --spacing-12: 48px;
+  
+  // 兼容性映射
+  --spacing-xs: var(--spacing-1);
+  --spacing-sm: var(--spacing-2);
+  --spacing-md: var(--spacing-4);
+  --spacing-lg: var(--spacing-6);
+  --spacing-xl: var(--spacing-8);
+  --spacing-xxl: var(--spacing-12);
+  
+  // ============ 排版系统 ============
+  --font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Helvetica, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-family-mono: 'SF Mono', 'Fira Code', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+  
+  // 字体大小 - Apple 动态类型
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-base: 14px;
+  --font-size-md: 16px;
+  --font-size-lg: 20px;
+  --font-size-xl: 24px;
+  --font-size-2xl: 28px;
+  --font-size-3xl: 32px;
+  
+  // 兼容性映射
+  --font-size-h1: var(--font-size-3xl);
+  --font-size-h2: var(--font-size-2xl);
+  --font-size-h3: var(--font-size-xl);
+  --font-size-h4: var(--font-size-lg);
+  --font-size-h5: var(--font-size-md);
+  --font-size-body: var(--font-size-base);
+  --font-size-small: var(--font-size-sm);
+  --font-size-aux: var(--font-size-xs);
+  
+  // 字重
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  
+  // 行高
+  --line-height-tight: 1.2;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.6;
+  --line-height-heading: 1.2;
+  --line-height-body: 1.5;
+  
+  // ============ 圆角系统 ============
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-full: 9999px;
+  
+  // ============ 过渡动画 ============
+  --duration-instant: 0ms;
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 350ms;
+  
+  --ease-standard: cubic-bezier(0.4, 0.0, 0.2, 1);
+  --ease-enter: cubic-bezier(0.0, 0.0, 0.2, 1);
+  --ease-exit: cubic-bezier(0.4, 0.0, 1, 1);
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  
+  --transition-fast: var(--duration-fast) var(--ease-standard);
+  --transition-normal: var(--duration-normal) var(--ease-standard);
+  --transition-slow: var(--duration-slow) var(--ease-standard);
+  
+  // ============ 布局尺寸 ============
+  --header-height: 64px;
+  --sidebar-width: 80px;
+  --sidebar-expanded: 240px;
+  --content-max-width: 1400px;
+  
+  // ============ 层级 ============
+  --z-base: 0;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-fixed: 300;
+  --z-modal-backdrop: 400;
+  --z-modal: 500;
+  --z-popover: 600;
+  --z-tooltip: 700;
+}
+
+// ============ Dark Theme - Apple 深色模式 ============
+[data-theme="dark"] {
+  // 主色
+  --primary-color: #0A84FF;
+  --primary-hover: #409CFF;
+  --primary-active: #0060C7;
+  --primary-light: rgba(10, 132, 255, 0.15);
+  
+  // 功能色
+  --success-color: #30D158;
+  --warning-color: #FF9F0A;
+  --danger-color: #FF453A;
+  --info-color: #64D2FF;
+  
+  // 背景色
+  --bg-base: #000000;
+  --bg-card: #1C1C1E;
+  --bg-hover: rgba(255, 255, 255, 0.08);
+  --bg-active: rgba(10, 132, 255, 0.12);
+  --bg-subtle: #2C2C2E;
+  --bg-elevated: #2C2C2E;
+  
+  // 文字色
+  --text-primary: #FFFFFF;
+  --text-secondary: #8E8E93;
+  --text-tertiary: #636366;
+  --text-disabled: #48484A;
+  --text-inverse: #1D1D1F;
+  
+  // 边框色
+  --border-color: rgba(255, 255, 255, 0.1);
+  --border-hover: rgba(255, 255, 255, 0.18);
+  --border-focus: #0A84FF;
+  --border-divider: rgba(255, 255, 255, 0.08);
+  
+  // 阴影
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.24);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.28);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.32);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.4);
+  
+  // 玻璃效果
+  --glass-bg: rgba(28, 28, 30, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.1);
+}

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Test</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .card {
+      background: white;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1 { color: #333; }
+    h2 { color: #666; margin-top: 0; }
+    pre {
+      background: #f8f8f8;
+      padding: 15px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    .loading { color: #999; }
+    .error { color: #f56c6c; }
+    .success { color: #67c23a; }
+  </style>
+</head>
+<body>
+  <h1>API 测试页面</h1>
+  
+  <div class="card">
+    <h2>1. Schemas API</h2>
+    <div id="schemas-result" class="loading">加载中...</div>
+  </div>
+
+  <div class="card">
+    <h2>2. Cache Options API</h2>
+    <div id="cache-result" class="loading">加载中...</div>
+  </div>
+
+  <div class="card">
+    <h2>3. Translations Count API</h2>
+    <div id="translations-result" class="loading">加载中...</div>
+  </div>
+
+  <script>
+    async function testAPI() {
+      // Test schemas API
+      try {
+        const res = await fetch('/api/schemas');
+        const data = await res.json();
+        document.getElementById('schemas-result').innerHTML = 
+          `<div class="success">✓ 成功获取 ${data.length} 个schemas</div>
+           <pre>${JSON.stringify(data.slice(0, 10), null, 2)}\n...</pre>`;
+      } catch (e) {
+        document.getElementById('schemas-result').innerHTML = 
+          `<div class="error">✗ 错误: ${e.message}</div>`;
+      }
+
+      // Test cache options API
+      try {
+        const res = await fetch('/api/cache/options');
+        const data = await res.json();
+        document.getElementById('cache-result').innerHTML = 
+          `<div class="success">✓ 成功获取 ${data.length} 个缓存options</div>
+           <pre>${JSON.stringify(data.slice(0, 10), null, 2)}\n...</pre>`;
+      } catch (e) {
+        document.getElementById('cache-result').innerHTML = 
+          `<div class="error">✗ 错误: ${e.message}</div>`;
+      }
+
+      // Test translations count API
+      try {
+        const res = await fetch('/api/translations/count');
+        const data = await res.json();
+        document.getElementById('translations-result').innerHTML = 
+          `<div class="success">✓ 成功获取翻译数量</div>
+           <pre>${JSON.stringify(data, null, 2)}</pre>`;
+      } catch (e) {
+        document.getElementById('translations-result').innerHTML = 
+          `<div class="error">✗ 错误: ${e.message}</div>`;
+      }
+    }
+
+    testAPI();
+  </script>
+</body>
+</html>

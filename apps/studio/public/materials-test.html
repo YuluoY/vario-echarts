@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Materials页面缓存状态测试</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 1200px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .card {
+      background: white;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1 { color: #333; }
+    h2 { color: #666; margin-top: 0; }
+    .status { padding: 10px; border-radius: 4px; margin: 10px 0; }
+    .success { background: #d4edda; color: #155724; }
+    .error { background: #f8d7da; color: #721c24; }
+    .info { background: #d1ecf1; color: #0c5460; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+    th { background: #f8f9fa; font-weight: 600; }
+    .cached { color: #28a745; }
+    .uncached { color: #dc3545; }
+    code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <h1>MaterialsView 缓存状态测试</h1>
+  
+  <div class="card">
+    <h2>1. API测试</h2>
+    <div id="api-status" class="status info">正在测试...</div>
+    <div id="api-result"></div>
+  </div>
+
+  <div class="card">
+    <h2>2. 缓存选项列表</h2>
+    <div id="cached-list"></div>
+  </div>
+
+  <div class="card">
+    <h2>3. 所有选项匹配测试</h2>
+    <div id="match-test"></div>
+  </div>
+
+  <script>
+    const ALL_OPTIONS = [
+      'title', 'legend', 'grid', 'xAxis', 'yAxis', 'polar', 'radiusAxis', 'angleAxis',
+      'radar', 'parallel', 'parallelAxis', 'singleAxis', 'geo', 'calendar',
+      'dataZoom', 'dataZoom-inside', 'dataZoom-slider',
+      'visualMap', 'visualMap-continuous', 'visualMap-piecewise',
+      'tooltip', 'axisPointer', 'toolbox', 'brush', 'timeline',
+      'graphic', 'dataset', 'aria',
+      'series-line', 'series-bar', 'series-pie', 'series-scatter', 'series-effectScatter',
+      'series-radar', 'series-tree', 'series-treemap', 'series-sunburst', 'series-boxplot',
+      'series-candlestick', 'series-heatmap', 'series-map', 'series-parallel', 'series-lines',
+      'series-graph', 'series-sankey', 'series-funnel', 'series-gauge', 'series-pictorialBar',
+      'series-themeRiver', 'series-custom',
+      'darkMode', 'color', 'backgroundColor', 'textStyle',
+      'animation', 'animationThreshold', 'animationDuration', 'animationEasing',
+      'animationDelay', 'animationDurationUpdate', 'animationEasingUpdate', 'animationDelayUpdate',
+      'stateAnimation',
+      'blendMode', 'hoverLayerThreshold', 'useUTC', 'options', 'media'
+    ];
+
+    async function testAPI() {
+      try {
+        const response = await fetch('/api/cache/options');
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const cachedOptions = await response.json();
+        
+        document.getElementById('api-status').className = 'status success';
+        document.getElementById('api-status').textContent = `✓ API正常，返回了 ${cachedOptions.length} 个缓存选项`;
+        
+        document.getElementById('api-result').innerHTML = `
+          <p>缓存的选项：</p>
+          <code>${cachedOptions.slice(0, 10).join(', ')}...</code>
+        `;
+
+        // 显示缓存列表
+        const cached = ALL_OPTIONS.filter(opt => cachedOptions.includes(opt));
+        const uncached = ALL_OPTIONS.filter(opt => !cachedOptions.includes(opt));
+        
+        document.getElementById('cached-list').innerHTML = `
+          <p><strong>已缓存 (${cached.length}):</strong></p>
+          <div style="color: #28a745; font-size: 14px;">${cached.join(', ')}</div>
+          <p style="margin-top: 20px;"><strong>未缓存 (${uncached.length}):</strong></p>
+          <div style="color: #dc3545; font-size: 14px;">${uncached.join(', ')}</div>
+        `;
+
+        // 匹配测试
+        const table = `
+          <table>
+            <thead>
+              <tr>
+                <th>选项Key</th>
+                <th>在option.cjs中</th>
+                <th>缓存状态</th>
+                <th>匹配结果</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${ALL_OPTIONS.slice(0, 20).map(opt => `
+                <tr>
+                  <td><code>${opt}</code></td>
+                  <td>✓</td>
+                  <td class="${cachedOptions.includes(opt) ? 'cached' : 'uncached'}">
+                    ${cachedOptions.includes(opt) ? '✓ 已缓存' : '✗ 未缓存'}
+                  </td>
+                  <td>${cachedOptions.includes(opt) ? '✓ 应显示绿色' : '✓ 应显示红色'}</td>
+                </tr>
+              `).join('')}
+              <tr><td colspan="4" style="text-align: center; color: #999;">... 还有 ${ALL_OPTIONS.length - 20} 个选项</td></tr>
+            </tbody>
+          </table>
+        `;
+        
+        document.getElementById('match-test').innerHTML = table;
+
+      } catch (e) {
+        document.getElementById('api-status').className = 'status error';
+        document.getElementById('api-status').textContent = `✗ API错误: ${e.message}`;
+      }
+    }
+
+    testAPI();
+  </script>
+</body>
+</html>

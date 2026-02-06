@@ -1,0 +1,35 @@
+{
+  "name": "vario-echarts",
+  "version": "1.0.0",
+  "description": "ECharts to Vario Schema Monorepo",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm dev:studio",
+    "dev:studio": "pnpm --filter @vario-echarts/studio dev",
+    "build": "pnpm -r build",
+    "build:core": "pnpm --filter @vario-echarts/core build",
+    "build:fetcher": "pnpm --filter @vario-echarts/fetcher build",
+    "build:studio": "pnpm --filter @vario-echarts/studio build",
+    "cli": "pnpm --filter @vario-echarts/cli start",
+    "fetch": "pnpm cli fetch",
+    "fetch:all": "pnpm cli fetch --all",
+    "convert": "pnpm cli convert",
+    "clean": "pnpm -r clean && rm -rf node_modules output data/.cache",
+    "clean:cache": "rm -rf data/.cache",
+    "postinstall": "pnpm build:core && pnpm build:fetcher"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@vitejs/plugin-vue": "^5.2.4",
+    "@vitest/coverage-v8": "^4.0.18",
+    "@vue/test-utils": "^2.4.6",
+    "jsdom": "^27.4.0",
+    "sass-embedded": "^1.97.3",
+    "typescript": "^5.3.0",
+    "vitest": "^4.0.18",
+    "vue": "^3.5.27"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

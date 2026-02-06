@@ -1,0 +1,37 @@
+{
+  "name": "@vario-echarts/studio",
+  "version": "1.0.0",
+  "description": "ECharts Vario Schema 可视化控制台",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@vario-echarts/core": "workspace:*",
+    "@vario-echarts/smart-components": "workspace:*",
+    "@element-plus/icons-vue": "^2.3.2",
+    "@variojs/core": "link:/Users/huyongle/Desktop/vario/packages/vario-core",
+    "@variojs/schema": "link:/Users/huyongle/Desktop/vario/packages/vario-schema",
+    "@variojs/vue": "link:/Users/huyongle/Desktop/vario/packages/vario-vue",
+    "@variojs/types": "link:/Users/huyongle/Desktop/vario/packages/vario-types",
+    "echarts": "^6.0.0",
+    "element-plus": "^2.13.1",
+    "jszip": "^3.10.1",
+    "lodash-es": "^4.17.21",
+    "monaco-editor": "^0.55.1",
+    "pinia": "^2.1.7",
+    "vue": "^3.4.0",
+    "vue-router": "^4.2.5"
+  },
+  "devDependencies": {
+    "@types/lodash-es": "^4.17.12",
+    "@vitejs/plugin-vue": "^5.0.0",
+    "@vue/tsconfig": "^0.5.0",
+    "sass": "^1.69.0",
+    "typescript": "^5.3.0",
+    "vite": "^5.0.0"
+  },
+  "private": true
+}
