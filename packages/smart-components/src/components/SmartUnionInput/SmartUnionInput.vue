@@ -505,6 +505,7 @@ export default defineComponent({
     cursor: pointer;
     width: 100%;
     transition: border-color 0.2s;
+    box-sizing: border-box;
 
     &:hover {
       border-color: #409eff;

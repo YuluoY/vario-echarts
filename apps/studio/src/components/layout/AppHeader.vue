@@ -32,7 +32,7 @@
         <button 
           class="theme-btn" 
           :class="{ active: theme === 'light' }"
-          @click="setTheme('light')"
+          @click="setTheme('light', $event)"
           title="浅色模式"
         >
           <el-icon><Sunny /></el-icon>
@@ -40,7 +40,7 @@
         <button 
           class="theme-btn" 
           :class="{ active: theme === 'auto' }"
-          @click="setTheme('auto')"
+          @click="setTheme('auto', $event)"
           title="跟随系统"
         >
           <el-icon><Monitor /></el-icon>
@@ -48,7 +48,7 @@
         <button 
           class="theme-btn" 
           :class="{ active: theme === 'dark' }"
-          @click="setTheme('dark')"
+          @click="setTheme('dark', $event)"
           title="深色模式"
         >
           <el-icon><Moon /></el-icon>
@@ -64,42 +64,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { onMounted } from 'vue';
 import { Sunny, Moon, Monitor, Search } from '@element-plus/icons-vue';
+import { useTheme } from '@/composables/useTheme';
 
-type Theme = 'light' | 'dark' | 'auto';
-const theme = ref<Theme>('auto');
-
-const getSystemTheme = (): 'light' | 'dark' => {
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-};
-
-const applyTheme = (t: Theme) => {
-  const actualTheme = t === 'auto' ? getSystemTheme() : t;
-  document.documentElement.setAttribute('data-theme', actualTheme);
-};
-
-const setTheme = (t: Theme) => {
-  theme.value = t;
-  localStorage.setItem('theme', t);
-  applyTheme(t);
-};
+const { theme, setTheme, applyTheme } = useTheme();
 
 onMounted(() => {
-  const saved = localStorage.getItem('theme') as Theme | null;
-  const initialTheme = saved || 'auto';
-  theme.value = initialTheme;
-  applyTheme(initialTheme);
-  
-  // 监听系统主题变化
-  if (initialTheme === 'auto') {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    mediaQuery.addEventListener('change', () => {
-      if (theme.value === 'auto') {
-        applyTheme('auto');
-      }
-    });
-  }
+  const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+  mediaQuery.addEventListener('change', () => {
+    if (theme.value === 'auto') applyTheme('auto');
+  });
 });
 </script>
 

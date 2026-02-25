@@ -54,11 +54,11 @@
           <button class="btn btn-sm btn-secondary" @click="clearSelection">清空</button>
           <button
             class="btn btn-sm btn-secondary"
-            :disabled="results.length === 0"
+            :disabled="config.selectedOptions.length === 0 || isDownloading"
             @click="downloadZip"
           >
             <el-icon><Download /></el-icon>
-            <span>下载压缩包</span>
+            <span>下载文件包</span>
           </button>
           <button
             class="btn btn-primary"
@@ -166,6 +166,25 @@
             <span class="form-hint" v-else>
               扁平文件: <code>output/series-line.{{ config.format }}</code>
             </span>
+          </div>
+        </div>
+
+        <!-- 压缩模式 -->
+        <div class="form-row">
+          <label class="form-label">压缩方式</label>
+          <div class="form-control">
+            <div class="radio-group">
+              <label
+                v-for="mode in compressionModes"
+                :key="mode.value"
+                class="radio-item"
+                :class="{ active: config.compressionMode === mode.value }"
+              >
+                <input type="radio" :value="mode.value" v-model="config.compressionMode" />
+                <span>{{ mode.label }}</span>
+              </label>
+            </div>
+            <span class="form-hint">{{ compressionHintMap[config.compressionMode] }}</span>
           </div>
         </div>
 
@@ -337,6 +356,21 @@ interface Result {
   path: string;
 }
 
+type CompressionMode = 'none' | 'zip' | 'brotli' | 'buffer';
+type OutputMode = 'folder' | 'flat';
+type CompressionOutput = {
+  fileName: string;
+  data: string | Uint8Array;
+  binary?: boolean;
+};
+type FflateModule = {
+  compressSync: (data: Uint8Array, options?: { level?: number; mem?: number }) => Uint8Array;
+  strToU8: (str: string) => Uint8Array;
+};
+type MsgPackModule = {
+  encode: (input: unknown) => Uint8Array;
+};
+
 const router = useRouter();
 
 // 本地存储键
@@ -382,20 +416,36 @@ const availableLangs = [
   { code: 'ko-KR', name: '한국어' }
 ];
 
+const compressionModes: Array<{ value: CompressionMode; label: string }> = [
+  { value: 'none', label: '不压缩' },
+  { value: 'zip', label: 'Zip (fflate)' },
+  { value: 'brotli', label: 'Brotli' },
+  { value: 'buffer', label: 'Buffer (msgpack)' }
+];
+
+const compressionHintMap: Record<CompressionMode, string> = {
+  none: '导出原始 schema 文本文件',
+  zip: '对每个 schema 文件使用 fflate 压缩，后缀 .zip',
+  brotli: '对每个 schema 文件使用 Brotli 压缩，后缀 .br',
+  buffer: '导出 MessagePack 二进制，后缀 .msgpack'
+};
+
 const config = reactive({
   selectedOptions: [] as string[],
   concurrency: 6,
   format: 'mjs',
   useSmartComponents: true,
-  outputMode: 'folder' as 'folder' | 'flat',
+  outputMode: 'folder' as OutputMode,
   i18n: false,
   i18nLangs: ['zh-CN', 'en-US'] as string[],
   schemaLang: 'zh-CN' as 'zh-CN' | 'en-US',
+  compressionMode: 'none' as CompressionMode,
   forceRefresh: false,
   syncOptions: true  // 默认启用同步更新 options 描述
 });
 
 const isGenerating = ref(false);
+const isDownloading = ref(false);
 const progress = reactive({
   current: 0,
   total: 0,
@@ -464,6 +514,7 @@ const saveConfig = () => {
       i18n: config.i18n,
       i18nLangs: config.i18nLangs,
       schemaLang: config.schemaLang,
+      compressionMode: config.compressionMode,
       forceRefresh: config.forceRefresh,
       syncOptions: config.syncOptions
     };
@@ -480,6 +531,9 @@ const loadConfig = () => {
     if (saved) {
       const savedConfig = JSON.parse(saved);
       Object.assign(config, savedConfig);
+      if (!compressionModes.some(mode => mode.value === config.compressionMode)) {
+        config.compressionMode = 'none';
+      }
       console.log('已加载保存的配置');
     }
   } catch (e) {
@@ -501,87 +555,95 @@ onMounted(() => {
   loadConfig();
 });
 
-// 导入国际化词表
-import zhCN from '@data/i18n/zh-CN.json';
-import enUS from '@data/i18n/en-US.json';
+let fflateModulePromise: Promise<FflateModule> | null = null;
+let msgpackModulePromise: Promise<MsgPackModule> | null = null;
+let zhDictPromise: Promise<Record<string, string>> | null = null;
 
-/**
- * 翻译schema内容中的placeholder、title和_raw.label
- * 注意：
- * 1. output目录下的schema已经是中文版本（由CLI生成时翻译）
- * 2. 如果用户选择zh-CN，直接返回原内容
- * 3. 如果用户选择en-US，需要反向查找词典将中文值转回英文
- * 4. _raw.desc 不需要翻译，因为它包含的是 ECharts 官方完整 HTML 描述
- */
-const translateSchemaContent = (content: string, lang: 'zh-CN' | 'en-US'): string => {
-  // 如果目标语言是中文，schema本身就是中文，无需翻译
-  if (lang === 'zh-CN') {
-    return content;
+const getFflateModule = async (): Promise<FflateModule> => {
+  if (!fflateModulePromise) {
+    fflateModulePromise = import('fflate').then(mod => ({
+      compressSync: mod.compressSync,
+      strToU8: mod.strToU8
+    }));
   }
-  
-  // 如果目标语言是英文，需要将中文值转回英文
-  const zhDict = zhCN as Record<string, string>;
-  const enDict = enUS as Record<string, string>;
-  
-  // 创建中文到英文的反向映射（中文值 -> 英文key）
-  const reverseMap: Record<string, string> = {};
-  for (const [enKey, zhValue] of Object.entries(zhDict)) {
-    if (typeof zhValue === 'string') {
-      reverseMap[zhValue] = enDict[enKey] || enKey;
-    }
+  return fflateModulePromise;
+};
+
+const getMsgPackModule = async (): Promise<MsgPackModule> => {
+  if (!msgpackModulePromise) {
+    msgpackModulePromise = import('@msgpack/msgpack').then(mod => ({
+      encode: mod.encode
+    }));
   }
-  
+  return msgpackModulePromise;
+};
+
+const getZhDict = async (): Promise<Record<string, string>> => {
+  if (!zhDictPromise) {
+    zhDictPromise = import('@data/i18n/zh-CN.json').then(mod => mod.default as Record<string, string>);
+  }
+  return zhDictPromise;
+};
+
+const getOutputRelativePath = (key: string, format: string, outputMode: OutputMode): string => {
+  if (outputMode === 'flat') {
+    return `${key}.${format}`;
+  }
+  return `${optionToPath(key)}/index.${format}`;
+};
+
+const fetchLocalSchemaFile = async (relativePath: string): Promise<string | null> => {
   try {
-    // 解析schema内容
-    let jsonStr = content;
-    const isModule = content.includes('export default') || content.includes('module.exports');
-    
-    if (isModule) {
-      // 支持数组或对象格式
-      const match = content.match(/(?:export\s+default|module\.exports\s*=)\s*([\[\{][\s\S]*[\]\}])\s*;?\s*$/);
-      if (match) {
-        jsonStr = match[1];
-      }
+    const response = await fetch(`/output/${relativePath}`, { cache: 'no-store' });
+    if (!response.ok) {
+      return null;
     }
-    
-    // 替换placeholder值（中文 -> 英文）
-    let translatedJson = jsonStr.replace(
-      /"placeholder"\s*:\s*"([^"]+)"/g,
-      (_match, zhValue) => {
-        const enValue = reverseMap[zhValue] || zhValue;
-        return `"placeholder": "${enValue}"`;
-      }
-    );
-    
-    // 替换title值（用于CollapseItem的标题）
-    translatedJson = translatedJson.replace(
-      /"title"\s*:\s*"([^"]+)"/g,
-      (_match, zhValue) => {
-        const enValue = reverseMap[zhValue] || zhValue;
-        return `"title": "${enValue}"`;
-      }
-    );
-    
-    // 替换_raw.label值
-    translatedJson = translatedJson.replace(
-      /"_raw"\s*:\s*\{\s*"label"\s*:\s*"([^"]+)"/g,
-      (_match, zhValue) => {
-        const enValue = reverseMap[zhValue] || zhValue;
-        return `"_raw": { "label": "${enValue}"`;
-      }
-    );
-    
-    // 重新组装为模块格式
-    if (content.includes('export default')) {
-      return `export default ${translatedJson};`;
-    } else if (content.includes('module.exports')) {
-      return `module.exports = ${translatedJson};`;
+    return await response.text();
+  } catch {
+    return null;
+  }
+};
+
+const parseSchemaFromFileContent = (content: string): unknown | null => {
+  let schemaText = content.trim();
+
+  const esmMatch = schemaText.match(/^export\s+default\s+([\s\S]*?);?\s*$/);
+  if (esmMatch) {
+    schemaText = esmMatch[1].trim();
+  } else {
+    const cjsMatch = schemaText.match(/^module\.exports\s*=\s*([\s\S]*?);?\s*$/);
+    if (cjsMatch) {
+      schemaText = cjsMatch[1].trim();
     }
-    
-    return translatedJson;
-  } catch (e) {
-    console.warn('翻译schema失败:', e);
-    return content;
+  }
+
+  try {
+    return JSON.parse(schemaText);
+  } catch {
+    return null;
+  }
+};
+
+const translateSchemaForZh = (schema: any, zhDict: Record<string, string>) => {
+  if (!schema) {
+    return;
+  }
+  if (Array.isArray(schema)) {
+    schema.forEach(node => translateSchemaForZh(node, zhDict));
+    return;
+  }
+
+  if (schema.type === 'ElCollapseItem' && schema.props?.title) {
+    schema.props.title = zhDict[schema.props.title as keyof typeof zhDict] || schema.props.title;
+  }
+  if (schema.props?.placeholder) {
+    schema.props.placeholder = zhDict[schema.props.placeholder as keyof typeof zhDict] || schema.props.placeholder;
+  }
+  if (schema._raw?.label) {
+    schema._raw.label = zhDict[schema._raw.label as keyof typeof zhDict] || schema._raw.label;
+  }
+  if (Array.isArray(schema.children)) {
+    schema.children.forEach((child: any) => translateSchemaForZh(child, zhDict));
   }
 };
 
@@ -596,16 +658,85 @@ const downloadZip = async () => {
     return;
   }
 
+  if (isDownloading.value) {
+    return;
+  }
+
+  isDownloading.value = true;
   try {
-    ElMessage.info('正在生成 Schema...');
+    ElMessage.info('正在准备下载文件...');
     
     // 动态导入依赖
     const JSZip = (await import('jszip')).default;
-    const { SchemaGenerator } = await import('@vario-echarts/core/browser');
     
     const zip = new JSZip();
     let successCount = 0;
     let failCount = 0;
+    let brotliFallbackUsed = false;
+    let generatedCount = 0;
+    let localFileCount = 0;
+
+    const ext = config.format;
+    const filesToGenerate: Array<{ key: string; relativePath: string }> = [];
+
+    // 优先直接读取本地 output 文件，避免每次都重新生成
+    for (const key of config.selectedOptions) {
+      const relativePath = getOutputRelativePath(key, ext, config.outputMode);
+      const localContent = await fetchLocalSchemaFile(relativePath);
+
+      if (!localContent) {
+        filesToGenerate.push({ key, relativePath });
+        continue;
+      }
+
+      let localSchema: unknown = null;
+      if (config.compressionMode === 'buffer') {
+        localSchema = parseSchemaFromFileContent(localContent);
+        if (localSchema === null) {
+          filesToGenerate.push({ key, relativePath });
+          continue;
+        }
+      }
+
+      const compressed = await compressFile({
+        mode: config.compressionMode,
+        fileName: relativePath,
+        textContent: localContent,
+        schema: localSchema
+      });
+      zip.file(compressed.fileName, compressed.data, { binary: compressed.binary });
+      localFileCount++;
+      successCount++;
+
+      if (config.compressionMode === 'brotli' && compressed.fileName.endsWith('.zip')) {
+        brotliFallbackUsed = true;
+      }
+    }
+
+    // 如果本地都存在，直接下载，无需重新生成
+    if (filesToGenerate.length === 0) {
+      const blob = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const modeLabel = config.outputMode === 'folder' ? 'folder' : 'flat';
+      a.download = `echarts-schemas-${config.schemaLang}-${modeLabel}-${config.compressionMode}-${new Date().toISOString().split('T')[0]}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      if (brotliFallbackUsed) {
+        ElMessage.warning('当前浏览器不支持 Brotli 压缩，已自动回退为 zip(fflate)');
+      }
+      ElMessage.success(`下载成功，全部使用本地文件（${localFileCount} 个）`);
+      return;
+    }
+
+    ElMessage.info(`本地命中 ${localFileCount} 个，其余 ${filesToGenerate.length} 个正在动态生成...`);
+
+    const { SchemaGenerator } = await import('@vario-echarts/core/browser');
+    const zhDict = config.schemaLang === 'zh-CN' ? await getZhDict() : null;
     
     // 使用 Vite 的 glob import 预加载所有模块
     // 路径: apps/studio/src/views/ -> ../../../../data/base/
@@ -646,7 +777,7 @@ const downloadZip = async () => {
     
     // 加载对应语言的 options 详情
     const optionDetails: Record<string, any> = {};
-    for (const key of config.selectedOptions) {
+    for (const key of filesToGenerate.map(item => item.key)) {
       // 查找匹配的模块
       const moduleKey = Object.keys(optionsModules).find(k => k.endsWith(`/${key}.mjs`));
       if (moduleKey && optionsModules[moduleKey]) {
@@ -659,57 +790,19 @@ const downloadZip = async () => {
     // 创建生成器
     const generator = new SchemaGenerator({ useSmartComponents: config.useSmartComponents });
     
-    // 为每个选项生成 Schema
-    for (const key of config.selectedOptions) {
+    // 为缺失本地文件的选项生成 Schema
+    for (const { key, relativePath } of filesToGenerate) {
       try {
         // 生成 Schema
         let schema = generator.generate(key, type, option[key]?.desc, optionDetails[key]);
         
         // 只有中文 locale 需要翻译字段名
-        if (config.schemaLang === 'zh-CN') {
-          // 使用中文翻译
-          const translateWithDict = (s: any) => {
-            if (!s) return;
-            if (Array.isArray(s)) {
-              s.forEach(node => translateWithDict(node));
-              return;
-            }
-            
-            if (s.type === 'ElCollapseItem' && s.props?.title) {
-              s.props.title = zhCN[s.props.title as keyof typeof zhCN] || s.props.title;
-            }
-            if (s.props?.placeholder) {
-              s.props.placeholder = zhCN[s.props.placeholder as keyof typeof zhCN] || s.props.placeholder;
-            }
-            if (s._raw?.label) {
-              s._raw.label = zhCN[s._raw.label as keyof typeof zhCN] || s._raw.label;
-            }
-            if (Array.isArray(s.children)) {
-              s.children.forEach((child: any) => translateWithDict(child));
-            }
-          };
-          translateWithDict(schema);
+        if (zhDict) {
+          translateSchemaForZh(schema, zhDict);
         }
-        // 英文 locale 不需要翻译，desc 已经是英文的
         
         // 将 schema 对象转换为字符串
         const schemaJson = JSON.stringify(schema, null, 2);
-        
-        // 根据输出格式决定文件扩展名
-        const ext = config.format;
-        
-        // 根据输出模式决定文件名
-        // pathKey 用于文件夹模式的路径
-        const pathKey = key.replace(/\./g, '/');
-        
-        let fileName: string;
-        if (config.outputMode === 'folder') {
-          // 文件夹模式：series-line -> series/line/index.mjs
-          fileName = `${pathKey}/index.${ext}`;
-        } else {
-          // 扁平模式：series-line -> series-line.mjs
-          fileName = `${key}.${ext}`;
-        }
         
         // 根据格式转换内容
         let outputContent: string;
@@ -724,8 +817,19 @@ const downloadZip = async () => {
           outputContent = `export default ${schemaJson};`;
         }
         
-        zip.file(fileName, outputContent);
+        const compressed = await compressFile({
+          mode: config.compressionMode,
+          fileName: relativePath,
+          textContent: outputContent,
+          schema
+        });
+        zip.file(compressed.fileName, compressed.data, { binary: compressed.binary });
+
+        if (config.compressionMode === 'brotli' && compressed.fileName.endsWith('.zip')) {
+          brotliFallbackUsed = true;
+        }
         successCount++;
+        generatedCount++;
       } catch (e) {
         console.warn(`无法加载 ${key} 的schema:`, e);
         failCount++;
@@ -740,22 +844,78 @@ const downloadZip = async () => {
     }
     
     // 生成并下载zip文件
-    const blob = await zip.generateAsync({ type: 'blob' });
+    const blob = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     const modeLabel = config.outputMode === 'folder' ? 'folder' : 'flat';
-    a.download = `echarts-schemas-${config.schemaLang}-${modeLabel}-${new Date().toISOString().split('T')[0]}.zip`;
+    a.download = `echarts-schemas-${config.schemaLang}-${modeLabel}-${config.compressionMode}-${new Date().toISOString().split('T')[0]}.zip`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     
-    ElMessage.success(`下载成功，共 ${fileCount} 个文件`);
+    if (brotliFallbackUsed) {
+      ElMessage.warning('当前浏览器不支持 Brotli 压缩，已自动回退为 zip(fflate)');
+    }
+    ElMessage.success(`下载成功，本地 ${localFileCount} 个，生成 ${generatedCount} 个，失败 ${failCount} 个`);
   } catch (error) {
     console.error('下载失败:', error);
     ElMessage.error('下载失败，请检查控制台');
+  } finally {
+    isDownloading.value = false;
   }
+};
+
+const compressWithBrotli = async (text: string): Promise<Uint8Array> => {
+  const CompressionStreamCtor = (globalThis as unknown as { CompressionStream?: new (format: string) => CompressionStream }).CompressionStream;
+  if (!CompressionStreamCtor) {
+    throw new Error('CompressionStream 不可用');
+  }
+
+  let compressedStream: ReadableStream<Uint8Array>;
+  try {
+    compressedStream = new Blob([text]).stream().pipeThrough(new CompressionStreamCtor('brotli'));
+  } catch (error) {
+    throw new Error(`Brotli 压缩不可用: ${String(error)}`);
+  }
+
+  const buffer = await new Response(compressedStream).arrayBuffer();
+  return new Uint8Array(buffer);
+};
+
+const compressFile = async (params: {
+  mode: CompressionMode;
+  fileName: string;
+  textContent: string;
+  schema: unknown;
+}): Promise<CompressionOutput> => {
+  const { mode, fileName, textContent, schema } = params;
+
+  if (mode === 'none') {
+    return { fileName, data: textContent };
+  }
+
+  if (mode === 'zip') {
+    const { compressSync, strToU8 } = await getFflateModule();
+    const compressed = compressSync(strToU8(textContent), { level: 9, mem: 8 });
+    return { fileName: `${fileName}.zip`, data: compressed, binary: true };
+  }
+
+  if (mode === 'brotli') {
+    try {
+      const compressed = await compressWithBrotli(textContent);
+      return { fileName: `${fileName}.br`, data: compressed, binary: true };
+    } catch {
+      const { compressSync, strToU8 } = await getFflateModule();
+      const fallback = compressSync(strToU8(textContent), { level: 9, mem: 8 });
+      return { fileName: `${fileName}.zip`, data: fallback, binary: true };
+    }
+  }
+
+  const { encode } = await getMsgPackModule();
+  const packed = encode(schema);
+  return { fileName: `${fileName}.msgpack`, data: packed, binary: true };
 };
 </script>
 

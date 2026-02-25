@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router';
+import GeneratorView from '../views/GeneratorView.vue';
 
 const routes = [
   {
@@ -46,7 +47,7 @@ const routes = [
   {
     path: '/generator',
     name: 'Generator',
-    component: () => import('../views/GeneratorView.vue'),
+    component: GeneratorView,
     meta: { title: '批量生成', icon: 'play-circle' }
   },
   {
@@ -62,7 +63,7 @@ const router = createRouter({
   routes
 });
 
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, _from, next) => {
   document.title = `${to.meta.title || 'ECharts Vario'} - Studio`;
   next();
 });

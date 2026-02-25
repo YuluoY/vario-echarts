@@ -18,6 +18,9 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  min-height: 100%;
+  background-color: var(--bg-base);
+  transition: background-color var(--transition-normal);
 }
 
 body {
@@ -26,6 +29,7 @@ body {
   line-height: var(--line-height-body);
   color: var(--text-primary);
   background: var(--bg-base);
+  min-height: 100%;
   transition: background-color var(--transition-normal);
 }
 
