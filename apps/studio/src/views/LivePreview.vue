@@ -19,8 +19,13 @@
       </div>
     </div>
 
-    <!-- 主体布局：左侧表单，右侧图表 -->
-    <div class="live-layout">
+    <!-- 主体布局：左侧表单 + 拖拽条 + 右侧图表，拼成一个整体 -->
+    <div
+      ref="layoutRef"
+      class="live-layout"
+      :class="{ dragging: isDragging }"
+      :style="{ '--form-width': `${leftWidth}px` }"
+    >
       <!-- 左侧：Vario 表单 -->
       <div class="form-panel">
         <div class="panel-header">
@@ -31,6 +36,16 @@
           <VNodeRenderer v-if="varioResult.vnode.value" :vnode="varioResult.vnode.value" />
           <el-empty v-else description="请选择一个示例" />
         </div>
+      </div>
+
+      <!-- 中间：拖拽分隔条 -->
+      <div
+        class="panel-resizer"
+        title="拖拽调整宽度（双击重置）"
+        @mousedown="startDrag"
+        @dblclick="leftWidth = DEFAULT_LEFT_WIDTH"
+      >
+        <div class="resizer-grip"></div>
       </div>
 
       <!-- 右侧：ECharts 预览 -->
@@ -354,6 +369,44 @@ const examples: ChartExample[] = [
 const chartRef = ref<HTMLElement | null>(null);
 const chartInstance = shallowRef<echarts.ECharts | null>(null);
 
+// 左右面板拖拽调整宽度
+const layoutRef = ref<HTMLElement | null>(null);
+const DEFAULT_LEFT_WIDTH = 400;
+const MIN_LEFT_WIDTH = 280;   // 配置面板最小宽度
+const MIN_RIGHT_WIDTH = 360;  // 图表面板最小宽度
+const leftWidth = ref(DEFAULT_LEFT_WIDTH);
+const isDragging = ref(false);
+
+function startDrag(e: MouseEvent) {
+  if (!layoutRef.value) return;
+  e.preventDefault();
+  isDragging.value = true;
+  document.body.style.cursor = 'col-resize';
+
+  const startX = e.clientX;
+  const startWidth = leftWidth.value;
+  const maxWidth = layoutRef.value.getBoundingClientRect().width - MIN_RIGHT_WIDTH;
+  let rafId = 0;
+
+  const onMove = (ev: MouseEvent) => {
+    if (rafId) return;
+    rafId = requestAnimationFrame(() => {
+      rafId = 0;
+      const delta = ev.clientX - startX;
+      leftWidth.value = Math.min(Math.max(startWidth + delta, MIN_LEFT_WIDTH), Math.max(maxWidth, MIN_LEFT_WIDTH));
+    });
+  };
+  const onUp = () => {
+    isDragging.value = false;
+    document.body.style.cursor = '';
+    if (rafId) cancelAnimationFrame(rafId);
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+  };
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+}
+
 // 选中的示例
 const selectedExample = ref('line');
 const currentExample = computed(() => examples.find(e => e.id === selectedExample.value));
@@ -450,9 +503,11 @@ async function loadSchemas() {
   
   for (const option of currentExample.value.options) {
     try {
+      // BASE_URL 末尾带 /，本地为 /，子路径部署（GitHub Pages）时为 /vario-echarts/
+      const base = import.meta.env.BASE_URL as string;
       const schemaPath = option.subType
-        ? `/schemas/${option.key}/${option.subType}/index.mjs`
-        : `/schemas/${option.key}/index.mjs`;
+        ? `${base}schemas/${option.key}/${option.subType}/index.mjs`
+        : `${base}schemas/${option.key}/index.mjs`;
       
       const schemaModule = await import(/* @vite-ignore */ schemaPath);
       const schema = schemaModule.default;
@@ -548,12 +603,20 @@ function downloadImage() {
 }
 
 // 生命周期
+let chartResizeObserver: ResizeObserver | null = null;
+
 onMounted(async () => {
   initChart();
+  // 拖拽/窗口变化时自动重算图表尺寸
+  if (chartRef.value && typeof ResizeObserver !== 'undefined') {
+    chartResizeObserver = new ResizeObserver(() => chartInstance.value?.resize());
+    chartResizeObserver.observe(chartRef.value);
+  }
   await loadSchemas();
 });
 
 onBeforeUnmount(() => {
+  chartResizeObserver?.disconnect();
   window.removeEventListener('resize', handleResize);
   chartInstance.value?.dispose();
 });
@@ -605,15 +668,21 @@ export default {
   gap: var(--spacing-3);
 }
 
-// 主体布局
+// 主体布局：左右面板拼成一个整体卡片，中间由拖拽条分隔
 .live-layout {
-  display: grid;
-  grid-template-columns: 400px 1fr;
-  gap: var(--spacing-5);
+  display: flex;
   flex: 1;
   min-height: 0;
   max-width: 100%;
   overflow: hidden;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+
+  &.dragging {
+    cursor: col-resize;
+    user-select: none;
+  }
 }
 
 // 面板通用样式
@@ -621,11 +690,50 @@ export default {
 .chart-panel {
   display: flex;
   flex-direction: column;
-  background: var(--bg-card);
-  border-radius: var(--radius-xl);
-  border: 1px solid var(--border-color);
   overflow: hidden;
   min-height: 0;
+}
+
+.form-panel {
+  width: var(--form-width, 400px);
+  flex-shrink: 0;
+}
+
+.chart-panel {
+  flex: 1;
+  min-width: 0;
+}
+
+// 拖拽分隔条
+.panel-resizer {
+  flex-shrink: 0;
+  width: 7px;
+  cursor: col-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-card);
+  border-left: 1px solid var(--border-divider);
+  border-right: 1px solid var(--border-divider);
+  transition: background var(--transition-fast);
+  touch-action: none;
+
+  .resizer-grip {
+    width: 3px;
+    height: 28px;
+    border-radius: var(--radius-full);
+    background: var(--text-disabled);
+    transition: background var(--transition-fast);
+  }
+
+  &:hover,
+  .live-layout.dragging & {
+    background: var(--primary-light);
+
+    .resizer-grip {
+      background: var(--primary-color);
+    }
+  }
 }
 
 .panel-header {
@@ -766,11 +874,16 @@ export default {
 // 响应式
 @media (max-width: 1280px) {
   .live-layout {
-    grid-template-columns: 1fr;
+    flex-direction: column;
   }
-  
+
   .form-panel {
+    width: auto;
     max-height: 400px;
+  }
+
+  .panel-resizer {
+    display: none;
   }
 }
 

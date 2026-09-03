@@ -423,9 +423,11 @@ const loadOption = async () => {
   loading.value = true;
   try {
     // 如果有选中的子类型，加载子类型的 Schema
-    const schemaPath = selectedSubType.value 
-      ? `/schemas/${selectedKey.value}/${selectedSubType.value}/index.mjs`
-      : `/schemas/${selectedKey.value}/index.mjs`;
+    // BASE_URL 末尾带 /，本地为 /，子路径部署（GitHub Pages）时为 /vario-echarts/
+    const base = import.meta.env.BASE_URL as string;
+    const schemaPath = selectedSubType.value
+      ? `${base}schemas/${selectedKey.value}/${selectedSubType.value}/index.mjs`
+      : `${base}schemas/${selectedKey.value}/index.mjs`;
     
     const schemaModule = await import(/* @vite-ignore */ schemaPath);
     let schema = schemaModule.default;
@@ -640,11 +642,13 @@ const downloadCode = () => {
   URL.revokeObjectURL(url);
 };
 
-onMounted(() => {
+onMounted(async () => {
   const key = route.query.key as string;
   if (key && allOptions.value.includes(key)) {
     selectedKey.value = key;
     viewMode.value = 'detail';
+    // 深链进入时同样要做子类型检测，否则 series 这类多子类型选项会加载不到 schema
+    await checkSubTypes(key);
     loadOption();
   }
 });
@@ -979,6 +983,13 @@ onMounted(() => {
 
   .preview-panel {
     padding: var(--spacing-5);
+    display: flex;
+    flex-direction: column;
+
+    > .schema-preview {
+      flex: 1;
+      min-height: 0;
+    }
   }
 
   &.preview-panel {

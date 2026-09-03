@@ -44,8 +44,6 @@ const globalComponents = instance?.appContext.components || {};
 // 字段标签直接使用 Schema 中的 placeholder（已通过 DeepSeek API 翻译）
 // 使用高性能 composable 进行表单布局转换（空间换时间）
 
-const activeCollapse = ref<string[]>([]);
-
 // 计算 Schema 节点数量
 const schemaNodeCount = computed(() => {
   if (!props.schema || !Array.isArray(props.schema)) return 0;
@@ -110,19 +108,27 @@ const formGroups = computed<FormGroup[]>(() => {
 const renderKey = ref(0);
 
 // 全局 vario 实例
-// 注意：将 activeCollapse 从 varioSchema 中移除，避免折叠状态变化导致整个 Schema 重建
+// 通过 model 绑定控制折叠面板：default 让第一个面板默认展开
+// lazy: true 时不预写 state，避免 activeCollapse 污染初始状态数据
 const varioSchema = computed<Schema>(() => {
   // 读取 renderKey 以便在需要时强制重新计算
   const _ = renderKey.value;
-  
+
   const groups = formGroups.value;
   if (groups.length === 0) {
     return { type: 'div', children: '暂无数据' };
   }
-  
-  // 不再在这里绑定 modelValue，让 ElCollapse 自己管理状态
+
+  // 第一个折叠项的唯一 name（由 wrapCollapse 生成）
+  const firstName = (groups[0].schema as any)?.props?.name as string | undefined;
+
   return {
     type: 'ElCollapse',
+    model: {
+      path: 'activeCollapse',
+      default: firstName ? [firstName] : [],
+      lazy: true
+    },
     props: {},
     children: groups.map(g => g.schema)
   } as Schema;
@@ -200,6 +206,9 @@ watch(
 <style lang="scss" scoped>
 .schema-preview {
   min-height: 300px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .empty-state {
@@ -207,20 +216,24 @@ watch(
   align-items: center;
   justify-content: center;
   min-height: 300px;
+  flex: 1;
 }
 
 .preview-content {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg);
 }
 
 .schema-render {
+  flex: 1;
+  min-height: 0;
   padding: var(--spacing-md);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   background: var(--bg-base);
-  max-height: 600px;
   overflow-y: auto;
 }
 

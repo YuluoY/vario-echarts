@@ -198,6 +198,9 @@ export function useSchemaFormLayout(options: FormLayoutOptions = {}) {
 
     return {
       type: 'ElCollapseItem',
+      // 强制组件化：保证懒加载挂载内容前后 vnode 类型稳定（始终为 VarioNode），
+      // 避免 ElCollapseItem 因内联/组件化路径切换被重建，丢失折叠过渡动画
+      _componentize: true,
       props: {
         ...node.props,
         name: uniqueName, // 使用唯一的 name
