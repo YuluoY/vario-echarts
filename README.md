@@ -14,7 +14,7 @@
 [![Vite](https://img.shields.io/badge/Vite-5-646CFF?logo=vite)](https://vitejs.dev/)
 [![pnpm](https://img.shields.io/badge/pnpm-monorepo-F69220?logo=pnpm)](https://pnpm.io/)
 
-[在线体验](https://huyongle.github.io/vario-echarts/) · [文档](./docs/01-项目概览.md) · [快速开始](#-快速开始)
+[在线体验](https://yuluoy.github.io/vario-echarts/) · [文档](./docs/01-项目概览.md) · [快速开始](#-快速开始)
 
 </div>
 
@@ -61,7 +61,7 @@
 
 ```bash
 # 克隆仓库
-git clone https://github.com/huyongle/vario-echarts.git
+git clone https://github.com/YuluoY/vario-echarts.git
 cd vario-echarts
 
 # 安装依赖（postinstall 会自动构建 core / fetcher）
@@ -107,7 +107,7 @@ VITE_BASE=/vario-echarts/ pnpm --filter @vario-echarts/studio build
 
 ## 🤝 贡献
 
-欢迎提交 [Issue](https://github.com/huyongle/vario-echarts/issues) 和 Pull Request！
+欢迎提交 [Issue](https://github.com/YuluoY/vario-echarts/issues) 和 Pull Request！
 
 ```bash
 pnpm install
