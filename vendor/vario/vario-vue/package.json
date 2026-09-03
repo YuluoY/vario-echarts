@@ -1,0 +1,35 @@
+{
+  "name": "@variojs/vue",
+  "version": "0.5.12",
+  "description": "Vario Vue Renderer - Vue 3 integration for Vario Schema rendering",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./plugins": {
+      "import": "./dist/plugins.js",
+      "types": "./dist/plugins.d.ts"
+    }
+  },
+  "dependencies": {
+    "@variojs/core": "workspace:*",
+    "@variojs/schema": "workspace:*",
+    "@variojs/types": "workspace:*"
+  },
+  "peerDependencies": {
+    "vue": "^3.4.0"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  }
+}

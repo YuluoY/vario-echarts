@@ -1,0 +1,35 @@
+{
+  "name": "@variojs/schema",
+  "version": "0.1.6",
+  "description": "Vario Schema DSL - Schema definition, validation, normalization, and transformation",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./codec": {
+      "import": "./dist/codec.js",
+      "types": "./dist/codec.d.ts"
+    },
+    "./compiler": {
+      "import": "./dist/compiler.js",
+      "types": "./dist/compiler.d.ts"
+    }
+  },
+  "dependencies": {
+    "@variojs/types": "workspace:*",
+    "@variojs/core": "workspace:*"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  }
+}

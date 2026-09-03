@@ -1,0 +1,27 @@
+{
+  "name": "@variojs/types",
+  "version": "0.0.7",
+  "description": "TypeScript type definitions for Vario framework",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "keywords": [
+    "vario",
+    "types",
+    "typescript"
+  ]
+}
