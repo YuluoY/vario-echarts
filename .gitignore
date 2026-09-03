@@ -1,6 +1,7 @@
 node_modules
 .codebuddy
 .cursor
-docs
 dist
-.github
+!vendor/**/dist/
+.DS_Store
+*.local

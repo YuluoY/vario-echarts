@@ -594,7 +594,10 @@ const getOutputRelativePath = (key: string, format: string, outputMode: OutputMo
 
 const fetchLocalSchemaFile = async (relativePath: string): Promise<string | null> => {
   try {
-    const response = await fetch(`/output/${relativePath}`, { cache: 'no-store' });
+    // 本地 dev 由中间件服务 /output/；生产构建后 schema 位于 BASE_URL 下的 schemas/
+    const base = import.meta.env.BASE_URL as string;
+    const url = import.meta.env.DEV ? `/output/${relativePath}` : `${base}schemas/${relativePath}`;
+    const response = await fetch(url, { cache: 'no-store' });
     if (!response.ok) {
       return null;
     }

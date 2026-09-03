@@ -206,6 +206,39 @@ async function copyResult() {
   padding-bottom: var(--spacing-8);
 }
 
+// 桌面端：页面撑满可视区，结果面板内部滚动，外层容器不出滚动条
+@media (min-width: 1025px) {
+  .converter-view {
+    // 100vh - 顶栏高度 - app-main 上下 padding（>1280 时为 spacing-6）
+    height: calc(100vh - var(--header-height) - var(--spacing-6) * 2);
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 0;
+
+    .page-header {
+      flex-shrink: 0;
+      margin-bottom: var(--spacing-4);
+    }
+
+    .converter-layout {
+      flex: 1;
+      min-height: 0;
+    }
+
+    .config-panel {
+      min-height: 0;
+      overflow-y: auto; // 矮窗口下左栏自身滚动
+    }
+  }
+
+  // 1025-1280 区间 app-main padding 收窄为 spacing-4，高度同步修正
+  @media (max-width: 1280px) {
+    .converter-view {
+      height: calc(100vh - var(--header-height) - var(--spacing-4) * 2);
+    }
+  }
+}
+
 .page-header {
   margin-bottom: var(--spacing-6);
 
@@ -381,6 +414,8 @@ async function copyResult() {
 
 // 结果面板
 .result-panel {
+  min-height: 0;
+
   .result-card {
     height: 100%;
     display: flex;
@@ -388,7 +423,9 @@ async function copyResult() {
 
     .panel-body {
       flex: 1;
-      min-height: 500px;
+      min-height: 0; // 允许收缩，代码区改为内部滚动
+      display: flex;
+      flex-direction: column;
       position: relative;
     }
   }
@@ -408,7 +445,8 @@ async function copyResult() {
   padding: var(--spacing-4);
   border-radius: var(--radius-lg);
   overflow: auto;
-  max-height: 100%;
+  flex: 1;
+  min-height: 0; // 超出面板高度时在代码区内部滚动
   font-size: var(--font-size-sm);
   line-height: 1.6;
   margin: 0;

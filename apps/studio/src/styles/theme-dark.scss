@@ -1,0 +1,106 @@
+/**
+ * 深色模式适配层 —— 全部深色修复集中在此文件，与业务实现完全隔离
+ *
+ * 根因：Element Plus 的根变量（--el-bg-color / --el-fill-color-* 等）
+ * 只有一套浅色值，global.scss 仅按组件逐个覆盖，未被覆盖到的组件
+ * （el-select 下拉框、el-tag plain、el-radio-button、表格条纹单元格、
+ * 弹层/对话框等）在深色下仍保持白色。
+ *
+ * 修复方式：在 [data-theme="dark"] 下把 Element Plus 全套根变量
+ * 重映射到 variables.scss 的 Apple design token，一处生效、全组件跟随。
+ * 浅色模式不加载任何覆盖，保持原样。
+ */
+
+[data-theme="dark"] {
+  // ============ 背景体系 ============
+  --el-bg-color: var(--bg-card);
+  --el-bg-color-overlay: var(--bg-elevated);
+  --el-bg-color-page: var(--bg-base);
+
+  // ============ 文字体系 ============
+  --el-text-color-primary: var(--text-primary);
+  --el-text-color-regular: var(--text-primary);
+  --el-text-color-secondary: var(--text-secondary);
+  --el-text-color-placeholder: var(--text-tertiary);
+  --el-text-color-disabled: var(--text-disabled);
+
+  // ============ 边框体系 ============
+  --el-border-color: var(--border-color);
+  --el-border-color-light: var(--border-color);
+  --el-border-color-lighter: var(--border-divider);
+  --el-border-color-extra-light: var(--border-divider);
+  --el-border-color-dark: var(--border-hover);
+  --el-border-color-hover: var(--border-hover);
+
+  // ============ 填充体系（白色块的主要来源）============
+  --el-fill-color: var(--bg-subtle);
+  --el-fill-color-light: var(--bg-hover);
+  --el-fill-color-lighter: var(--bg-hover);
+  --el-fill-color-extra-light: var(--bg-hover);
+  --el-fill-color-dark: var(--bg-active);
+  --el-fill-color-darker: var(--bg-active);
+  --el-fill-color-blank: var(--bg-card);
+
+  // ============ 语义色 ============
+  --el-color-primary: var(--primary-color);
+  --el-color-success: var(--success-color);
+  --el-color-warning: var(--warning-color);
+  --el-color-danger: var(--danger-color);
+  --el-color-error: var(--danger-color);
+  --el-color-info: var(--text-secondary);
+
+  // 语义色的 light 梯度（浅色下是淡色底，深色下改为半透明叠加色）
+  --el-color-primary-light-3: rgba(10, 132, 255, 0.55);
+  --el-color-primary-light-5: rgba(10, 132, 255, 0.35);
+  --el-color-primary-light-7: rgba(10, 132, 255, 0.25);
+  --el-color-primary-light-8: rgba(10, 132, 255, 0.2);
+  --el-color-primary-light-9: rgba(10, 132, 255, 0.12);
+  --el-color-primary-dark-2: rgba(10, 132, 255, 0.8);
+
+  --el-color-success-light-3: rgba(48, 209, 88, 0.55);
+  --el-color-success-light-5: rgba(48, 209, 88, 0.35);
+  --el-color-success-light-7: rgba(48, 209, 88, 0.25);
+  --el-color-success-light-8: rgba(48, 209, 88, 0.2);
+  --el-color-success-light-9: rgba(48, 209, 88, 0.12);
+  --el-color-success-dark-2: rgba(48, 209, 88, 0.8);
+
+  --el-color-warning-light-3: rgba(255, 159, 10, 0.55);
+  --el-color-warning-light-5: rgba(255, 159, 10, 0.35);
+  --el-color-warning-light-7: rgba(255, 159, 10, 0.25);
+  --el-color-warning-light-8: rgba(255, 159, 10, 0.2);
+  --el-color-warning-light-9: rgba(255, 159, 10, 0.12);
+  --el-color-warning-dark-2: rgba(255, 159, 10, 0.8);
+
+  --el-color-danger-light-3: rgba(255, 69, 58, 0.55);
+  --el-color-danger-light-5: rgba(255, 69, 58, 0.35);
+  --el-color-danger-light-7: rgba(255, 69, 58, 0.25);
+  --el-color-danger-light-8: rgba(255, 69, 58, 0.2);
+  --el-color-danger-light-9: rgba(255, 69, 58, 0.12);
+  --el-color-danger-dark-2: rgba(255, 69, 58, 0.8);
+
+  --el-color-error-light-3: rgba(255, 69, 58, 0.55);
+  --el-color-error-light-5: rgba(255, 69, 58, 0.35);
+  --el-color-error-light-7: rgba(255, 69, 58, 0.25);
+  --el-color-error-light-8: rgba(255, 69, 58, 0.2);
+  --el-color-error-light-9: rgba(255, 69, 58, 0.12);
+  --el-color-error-dark-2: rgba(255, 69, 58, 0.8);
+
+  --el-color-info-light-3: rgba(142, 142, 147, 0.55);
+  --el-color-info-light-5: rgba(142, 142, 147, 0.35);
+  --el-color-info-light-7: rgba(142, 142, 147, 0.25);
+  --el-color-info-light-8: rgba(142, 142, 147, 0.2);
+  --el-color-info-light-9: rgba(142, 142, 147, 0.12);
+  --el-color-info-dark-2: rgba(142, 142, 147, 0.8);
+
+  // ============ 禁用态 / 遮罩 / 阴影 ============
+  --el-disabled-bg-color: var(--bg-subtle);
+  --el-disabled-text-color: var(--text-disabled);
+  --el-disabled-border-color: var(--border-color);
+
+  --el-mask-color: rgba(0, 0, 0, 0.6);
+  --el-mask-color-extra-light: rgba(0, 0, 0, 0.4);
+
+  --el-box-shadow: var(--shadow-lg);
+  --el-box-shadow-light: var(--shadow-md);
+  --el-box-shadow-lighter: var(--shadow-sm);
+}

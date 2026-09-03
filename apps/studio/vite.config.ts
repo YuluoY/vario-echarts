@@ -1,8 +1,81 @@
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import { resolve } from 'path';
-import { readFileSync, existsSync, readdirSync, statSync, writeFileSync, mkdirSync } from 'fs';
+import { readFileSync, existsSync, readdirSync, statSync, cpSync, writeFileSync, mkdirSync } from 'fs';
 import { spawn } from 'child_process';
+
+// 自定义插件：构建后将生成的 schema 产物（../../output）拷入 dist/schemas，
+// 生成 api-metrics.json 供线上 Dashboard 使用（dev 环境由 serve-output 插件的 /api 提供），
+// 并复制 index.html 为 404.html，使 GitHub Pages 等静态托管支持前端路由刷新
+function staticDeployPlugin() {
+  const outputDir = resolve(__dirname, '../../output');
+  const dataDir = resolve(__dirname, '../../data');
+
+  return {
+    name: 'static-deploy',
+    closeBundle() {
+      const distDir = resolve(__dirname, 'dist');
+      if (!existsSync(distDir)) return;
+
+      // 收集所有含 index.mjs 的 schema 目录
+      const schemas: string[] = [];
+      const scanSchemas = (dir: string, baseDir: string) => {
+        if (!existsSync(dir)) return;
+        for (const item of readdirSync(dir)) {
+          const itemPath = resolve(dir, item);
+          if (!statSync(itemPath).isDirectory()) continue;
+          if (existsSync(resolve(itemPath, 'index.mjs'))) {
+            schemas.push(itemPath.replace(baseDir + '/', ''));
+          }
+          scanSchemas(itemPath, baseDir);
+        }
+      };
+      scanSchemas(outputDir, outputDir);
+
+      // 收集已缓存的 options
+      const cachedOptions: string[] = [];
+      const optionsPath = resolve(dataDir, 'base/options');
+      const scanOptions = (dir: string, baseDir: string) => {
+        if (!existsSync(dir)) return;
+        for (const item of readdirSync(dir)) {
+          const itemPath = resolve(dir, item);
+          if (statSync(itemPath).isDirectory()) {
+            scanOptions(itemPath, baseDir);
+          } else if (item.endsWith('.mjs')) {
+            cachedOptions.push(itemPath.replace(baseDir + '/', '').replace('.mjs', ''));
+          }
+        }
+      };
+      scanOptions(optionsPath, optionsPath);
+
+      // 统计翻译条目
+      let translationCount = 0;
+      const zhCNPath = resolve(dataDir, 'i18n/zh-CN.json');
+      if (existsSync(zhCNPath)) {
+        try {
+          translationCount = Object.keys(JSON.parse(readFileSync(zhCNPath, 'utf-8'))).length;
+        } catch { /* 忽略解析失败 */ }
+      }
+
+      writeFileSync(
+        resolve(distDir, 'api-metrics.json'),
+        JSON.stringify({ schemas, cachedOptions, translationCount })
+      );
+      console.log(`[static-deploy] wrote api-metrics.json (${schemas.length} schemas, ${cachedOptions.length} options, ${translationCount} translations)`);
+
+      if (existsSync(outputDir)) {
+        cpSync(outputDir, resolve(distDir, 'schemas'), { recursive: true });
+        console.log('[static-deploy] copied output/ -> dist/schemas/');
+      }
+
+      const indexPath = resolve(distDir, 'index.html');
+      if (existsSync(indexPath)) {
+        writeFileSync(resolve(distDir, '404.html'), readFileSync(indexPath));
+        console.log('[static-deploy] wrote dist/404.html for SPA fallback');
+      }
+    }
+  };
+}
 
 // 自定义插件：服务 output 目录的静态文件 + API
 function serveOutputPlugin() {
@@ -167,7 +240,9 @@ function serveOutputPlugin() {
 }
 
 export default defineConfig({
-  plugins: [vue(), serveOutputPlugin()],
+  // 部署到 GitHub Pages 等子路径时，通过环境变量注入 base（如 VITE_BASE=/vario-echarts/）
+  base: process.env.VITE_BASE || '/',
+  plugins: [vue(), serveOutputPlugin(), staticDeployPlugin()],
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
@@ -189,6 +264,7 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: true
+    // monaco + echarts + element-plus 体量大，开启 sourcemap 会导致构建 OOM
+    sourcemap: false
   }
 });

@@ -185,6 +185,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { useTheme } from '@/composables/useTheme';
 import {
   DocumentCopy,
   ChatDotRound,
@@ -208,13 +209,9 @@ const version = ref('1.0.0');
 const dataPath = ref('data/');
 const outputPath = ref('output/');
 
-// 主题检测
-const isDark = computed(() => {
-  if (typeof document !== 'undefined') {
-    return document.documentElement.getAttribute('data-theme') === 'dark';
-  }
-  return false;
-});
+// 主题检测（useTheme 内部是响应式 ref；直接读 DOM 属性的 computed 不会随主题切换更新）
+const { resolvedTheme } = useTheme();
+const isDark = computed(() => resolvedTheme.value === 'dark');
 
 // 核心指标
 const metrics = ref({
@@ -231,6 +228,26 @@ const optionProgress = computed(() => Math.round(metrics.value.cachedOptions / 6
 
 // 加载真实数据
 const loadMetrics = async () => {
+  // 生产构建（静态部署）没有 /api，改读构建时生成的 api-metrics.json
+  if (!import.meta.env.DEV) {
+    try {
+      const res = await fetch(`${import.meta.env.BASE_URL}api-metrics.json`);
+      if (res.ok) {
+        const data = await res.json() as {
+          schemas: string[];
+          translationCount: number;
+          cachedOptions: string[];
+        };
+        metrics.value.generatedSchemas = data.schemas.length;
+        metrics.value.translationCount = data.translationCount;
+        metrics.value.cachedOptions = data.cachedOptions.length;
+      }
+    } catch (e) {
+      console.error('Failed to load metrics:', e);
+    }
+    return;
+  }
+
   try {
     // 获取已生成的schema数量
     const schemasRes = await fetch('/api/schemas');

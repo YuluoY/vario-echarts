@@ -3,6 +3,7 @@
  */
 
 @use './variables.scss' as *;
+@use './theme-dark.scss'; // 深色模式适配层：Element Plus 根变量重映射，与业务实现隔离
 
 // ============ 重置样式 ============
 *,
@@ -211,9 +212,17 @@ code {
   --el-tag-bg-color: var(--bg-subtle);
   --el-tag-text-color: var(--text-primary);
   --el-tag-border-color: transparent;
-  
+
   border-radius: var(--radius-sm);
   font-weight: var(--font-weight-medium);
+
+  // 内容区显式行布局：图标与文字同行居中
+  // （不设时内容 span 作为 flex 子项被块化，图标块级化后会独占一行，文字掉到第二行）
+  .el-tag__content {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-1);
+  }
 }
 
 .el-tag--success {

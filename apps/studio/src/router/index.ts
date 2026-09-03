@@ -59,7 +59,8 @@ const routes = [
 ];
 
 const router = createRouter({
-  history: createWebHistory(),
+  // BASE_URL 由 vite base 决定，子路径部署（如 GitHub Pages）时自动带上前缀
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes
 });
 

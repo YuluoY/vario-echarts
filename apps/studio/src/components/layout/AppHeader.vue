@@ -32,7 +32,7 @@
         <button 
           class="theme-btn" 
           :class="{ active: theme === 'light' }"
-          @click="setTheme('light', $event)"
+          @click="setTheme('light')"
           title="浅色模式"
         >
           <el-icon><Sunny /></el-icon>
@@ -40,7 +40,7 @@
         <button 
           class="theme-btn" 
           :class="{ active: theme === 'auto' }"
-          @click="setTheme('auto', $event)"
+          @click="setTheme('auto')"
           title="跟随系统"
         >
           <el-icon><Monitor /></el-icon>
@@ -48,7 +48,7 @@
         <button 
           class="theme-btn" 
           :class="{ active: theme === 'dark' }"
-          @click="setTheme('dark', $event)"
+          @click="setTheme('dark')"
           title="深色模式"
         >
           <el-icon><Moon /></el-icon>

@@ -193,3 +193,22 @@
   --glass-bg: rgba(28, 28, 30, 0.72);
   --glass-border: rgba(255, 255, 255, 0.1);
 }
+
+// ============ 主题切换平滑过渡 ============
+// 切换瞬间由 useTheme 在 <html> 上短暂挂载 .theme-transitioning（约 400ms 后移除），
+// 期间全站只对颜色类属性做过渡——组件、布局、阴影层级全部保持渲染，颜色自然渐变；
+// 平时不生效，避免干扰 hover 等交互动画
+html.theme-transitioning,
+html.theme-transitioning *,
+html.theme-transitioning *::before,
+html.theme-transitioning *::after {
+  transition:
+    background-color 350ms var(--ease-standard),
+    color 350ms var(--ease-standard),
+    border-color 350ms var(--ease-standard),
+    outline-color 350ms var(--ease-standard),
+    fill 350ms var(--ease-standard),
+    stroke 350ms var(--ease-standard),
+    box-shadow 350ms var(--ease-standard) !important;
+  transition-delay: 0ms !important;
+}
